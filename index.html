@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 연말정산 예측 계산기</title>
+    <meta name="description" content="2026년 최신 개정 세법을 반영한 직관적이고 아름다운 연말정산 환급금 예측 시뮬레이터">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i class="fa-solid fa-calculator-combined logo-icon"></i>
+                <div class="logo-text">
+                    <h1>TaxFlow</h1>
+                    <span>2026 연말정산 예측 계산기</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span class="badge tax-year-badge">2026년 귀속 기준</span>
+                <button id="theme-toggle" class="theme-toggle-btn" aria-label="화면 테마 전환">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <main class="app-main">
+            <!-- Left Side: Inputs -->
+            <section class="input-section">
+                <!-- Navigation Tabs -->
+                <nav class="nav-tabs" role="tablist">
+                    <button class="tab-btn active" data-tab="income" role="tab" aria-selected="true">
+                        <i class="fa-solid fa-won-sign"></i> 소득/기본
+                    </button>
+                    <button class="tab-btn" data-tab="family" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-users"></i> 부양가족
+                    </button>
+                    <button class="tab-btn" data-tab="deduction" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-credit-card"></i> 소득공제
+                    </button>
+                    <button class="tab-btn" data-tab="tax-credit" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-receipt"></i> 세액공제
+                    </button>
+                </nav>
+
+                <!-- Tab Contents Container -->
+                <div class="tab-contents">
+                    <!-- Tab 1: Income -->
+                    <div class="tab-pane active" id="tab-income" role="tabpanel">
+                        <div class="card">
+                            <h2 class="card-title"><i class="fa-solid fa-coins"></i> 총급여 및 기납부세액 입력</h2>
+                            <p class="card-subtitle">기본적인 1년 예상 소득 정보를 입력하세요.</p>
+                            
+                            <div class="form-group">
+                                <label for="gross-income">
+                                    총급여액 (연봉 - 비과세 소득)
+                                    <span class="tooltip-trigger" data-tooltip="비과세 소득(예: 식대 월 20만 원, 자녀보육수당 인당 월 20만 원 등)을 제외한 연봉 총액입니다."><i class="fa-regular fa-circle-question"></i></span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <input type="number" id="gross-income" placeholder="예: 50,000,000" min="0" step="10000">
+                                    <span class="unit">원</span>
+                                </div>
+                                <span class="input-hint" id="gross-income-korean">0 원</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="prepaid-tax">
+                                    기납부세액 (지방소득세 제외)
+                                    <span class="tooltip-trigger" data-tooltip="매월 급여에서 원천징수되어 먼저 납부한 소득세 총액입니다. 급여명세서나 원천징수영수증에서 확인 가능합니다."><i class="fa-regular fa-circle-question"></i></span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <input type="number" id="prepaid-tax" placeholder="예: 1,500,000" min="0" step="10000">
+                                    <span class="unit">원</span>
+                                </div>
+                                <span class="input-hint" id="prepaid-tax-korean">0 원</span>
+                                <button type="button" id="auto-prepaid-tax" class="btn-subtle">
+                                    <i class="fa-solid fa-magic"></i> 평균 기납부세액 자동 입력
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Family -->
+                    <div class="tab-pane" id="tab-family" role="tabpanel">
+                        <div class="card">
+                            <h2 class="card-title"><i class="fa-solid fa-users"></i> 인적공제 구성</h2>
+                            <p class="card-subtitle">부양가족 요건에 따른 공제 혜택이 적용됩니다. (기본 1명당 150만 원)</p>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="spouse-deduction">배우자 공제 여부</label>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="spouse-deduction">
+                                        <label for="spouse-deduction"></label>
+                                        <span class="toggle-text">배우자 있음 (연소득 100만 원 이하)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="child-count">자녀 수 (8세 이상 20세 이하)</label>
+                                    <div class="number-input-wrapper">
+                                        <button type="button" class="num-btn decrease">-</button>
+                                        <input type="number" id="child-count" value="0" min="0" max="10">
+                                        <button type="button" class="num-btn increase">+</button>
+                                    </div>
+                                    <span class="input-hint text-xs">자녀세액공제 및 신용카드 추가한도 혜택 적용</span>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="dependents-count">기타 부양가족 수</label>
+                                    <div class="number-input-wrapper">
+                                        <button type="button" class="num-btn decrease">-</button>
+                                        <input type="number" id="dependents-count" value="0" min="0" max="20">
+                                        <button type="button" class="num-btn increase">+</button>
+                                    </div>
+                                    <span class="input-hint text-xs">60세 이상 부모님, 20세 이하 형제자매 등</span>
+                                </div>
+                            </div>
+
+                            <div class="divider"></div>
+                            <h3 class="section-subtitle">추가 공제 요건 (기본공제 대상자 중 해당자 입력)</h3>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="elderly-count">경로우대자 수 (70세 이상)</label>
+                                    <div class="number-input-wrapper">
+                                        <button type="button" class="num-btn decrease">-</button>
+                                        <input type="number" id="elderly-count" value="0" min="0" max="10">
+                                        <button type="button" class="num-btn increase">+</button>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="disabled-count">장애인 수</label>
+                                    <div class="number-input-wrapper">
+                                        <button type="button" class="num-btn decrease">-</button>
+                                        <input type="number" id="disabled-count" value="0" min="0" max="10">
+                                        <button type="button" class="num-btn increase">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="woman-deduction">부녀자 공제</label>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="woman-deduction">
+                                        <label for="woman-deduction"></label>
+                                        <span class="toggle-text">해당됨 (연소득 3천 이하 여성 가장 등)</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="single-parent-deduction">한부모 공제</label>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="single-parent-deduction">
+                                        <label for="single-parent-deduction"></label>
+                                        <span class="toggle-text">해당됨 (배우자 없는 자녀 부양)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Deduction -->
+                    <div class="tab-pane" id="tab-deduction" role="tabpanel">
+                        <div class="card">
+                            <h2 class="card-title"><i class="fa-solid fa-credit-card"></i> 신용카드 및 소비 소득공제</h2>
+                            <p class="card-subtitle">총급여의 25% 초과분에 대해 카드 결제수단 및 대상에 따라 공제됩니다.</p>
+                            
+                            <div class="card-info-box">
+                                <i class="fa-solid fa-lightbulb"></i>
+                                <span>2026 개정 세법에 따라 **수영장 및 체력단련장 이용료**도 공제 대상에 새로 추가되었으며, 자녀가 있을 시 한도가 최대 **100만 원** 상향됩니다.</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="card-credit">신용카드 사용액</label>
+                                <div class="input-wrapper">
+                                    <input type="number" id="card-credit" placeholder="0" min="0" step="10000">
+                                    <span class="unit">원</span>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="card-debit">체크카드 · 현금영수증</label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="card-debit" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="card-culture">도서 · 공연 · 영화 · 수영장
+                                        <span class="tooltip-trigger" data-tooltip="도서 구입, 공연/미술관/박물관/영화 관람 및 2025년 7월 이후 지출한 체육시설(수영장, 헬스장 등) 이용료 총액입니다. (총급여 7천만 원 이하만 적용)"><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="card-culture" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="card-market">전통시장 사용액</label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="card-market" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="card-transit">대중교통 이용액</label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="card-transit" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-4">
+                            <h2 class="card-title"><i class="fa-solid fa-home"></i> 주택마련 및 기타 소득공제</h2>
+                            <p class="card-subtitle">청약, 대출상환액 등 주거 안정 관련 소득공제 항목입니다.</p>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="housing-saving">주택청약 종합저축 납입액
+                                        <span class="tooltip-trigger" data-tooltip="총급여 7천만 원 이하 무주택 세대주 또는 배우자 대상, 연 300만 원 한도의 40%가 공제됩니다."><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="housing-saving" placeholder="0" min="0" max="3000000" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="housing-rent">주택임차 원리금상환액
+                                        <span class="tooltip-trigger" data-tooltip="전세자금 대출 원리금 상환액으로, 납입액의 40%가 공제됩니다. (청약저축 공제액과 합산 한도 400만 원)"><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="housing-rent" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="housing-loan">장기주택저당차입금 이자상환액
+                                    <span class="tooltip-trigger" data-tooltip="주택 구입 목적 담보대출 이자 상환액입니다. 상환 조건에 따라 연 500만~2,000만 원 한도로 100% 공제됩니다."><i class="fa-regular fa-circle-question"></i></span>
+                                </label>
+                                <div class="input-wrapper">
+                                    <input type="number" id="housing-loan" placeholder="0" min="0" step="10000">
+                                    <span class="unit">원</span>
+                                </div>
+                            </div>
+
+                            <div class="divider"></div>
+                            <h3 class="section-subtitle">공적연금 및 건강보험료 (미입력 시 총급여 비례 자동 계산)</h3>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="national-pension">국민연금 보험료</label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="national-pension" placeholder="자동 계산" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="health-insurance">건강 및 고용보험료</label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="health-insurance" placeholder="자동 계산" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: Tax Credit -->
+                    <div class="tab-pane" id="tab-tax-credit" role="tabpanel">
+                        <div class="card">
+                            <h2 class="card-title"><i class="fa-solid fa-receipt"></i> 연금저축 및 특별세액공제</h2>
+                            <p class="card-subtitle">세금 산출 이후 직접적으로 세액을 감면해주는 항목들입니다.</p>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="pension-saving">연금저축 납입액
+                                        <span class="tooltip-trigger" data-tooltip="개인연금저축 납입 금액으로 연 최대 600만 원까지 세액공제 대상입니다. (IRP 합산 연 900만 원 한도)"><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="pension-saving" placeholder="0" min="0" max="6000000" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="irp-saving">퇴직연금 (IRP) 납입액
+                                        <span class="tooltip-trigger" data-tooltip="퇴직연금계좌 추가 납입액으로, 연금저축 납입액과 합산하여 연 최대 900만 원까지 세액공제 대상입니다."><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="irp-saving" placeholder="0" min="0" max="9000000" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="insurance-normal">보장성 보험료
+                                        <span class="tooltip-trigger" data-tooltip="생명보험, 실손의료보험 등 일반 보장성 보험료 납입액으로 연 100만 원 한도 내 12% 세액공제됩니다."><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="insurance-normal" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="insurance-disabled">장애인 전용 보장성보험
+                                        <span class="tooltip-trigger" data-tooltip="장애인을 피보험자 또는 수익자로 하는 보장성 보험료 납입액으로 연 100만 원 한도 내 15% 세액공제됩니다."><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="insurance-disabled" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="divider"></div>
+                            <h3 class="section-subtitle">의료비 및 교육비 세액공제</h3>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="medical-special">의료비 (본인·경로·장애인·난임)
+                                        <span class="tooltip-trigger" data-tooltip="본인, 65세 이상 부양가족, 장애인 의료비 및 난임시술비는 한도 없이 전액 세액공제 대상입니다. (난임 30%, 일반 15%)"><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="medical-special" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="medical-normal">의료비 (그 외 부양가족)
+                                        <span class="tooltip-trigger" data-tooltip="기타 부양가족을 위해 지출한 일반 의료비 총액입니다. 총급여의 3% 초과분에 대해 연 700만 원 한도로 15% 세액공제됩니다."><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="medical-normal" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="education-self">본인 교육비
+                                        <span class="tooltip-trigger" data-tooltip="대학원비, 직업능력개발훈련비 등을 포함한 본인 교육비로 한도 없이 15% 세액공제됩니다."><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="education-self" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="education-dependents">부양가족 교육비
+                                        <span class="tooltip-trigger" data-tooltip="취학 전 아동 및 초·중·고교생은 인당 300만 원, 대학생은 인당 900만 원 한도 내에서 15% 세액공제됩니다. (만 9세 미만 자녀 예체능학원비 포함)"><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="education-dependents" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="divider"></div>
+                            <h3 class="section-subtitle">기부금 및 월세액 세액공제</h3>
+
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="donation">기부금 납입액
+                                        <span class="tooltip-trigger" data-tooltip="정치자금기부금, 법정/지정기부금 등 기부금 총액입니다. (10만 원 이하는 100/110 전액 공제, 초과분은 15%~30% 세액공제)"><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="donation" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="monthly-rent">연간 월세 납부액
+                                        <span class="tooltip-trigger" data-tooltip="총급여 7천만 원 이하 무주택 세대주 또는 배우자 대상, 연 1,000만 원 한도 내에서 15%~17% 세액공제됩니다."><i class="fa-regular fa-circle-question"></i></span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="monthly-rent" placeholder="0" min="0" max="10000000" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Sticky Results Display -->
+            <section class="result-section">
+                <div class="sticky-container">
+                    <!-- Summary Card -->
+                    <div class="result-card" id="result-box">
+                        <div class="result-header">
+                            <h3>예상 환급/납부 결과</h3>
+                            <span class="live-indicator"><span class="dot"></span>실시간 계산중</span>
+                        </div>
+                        
+                        <div class="result-amount-display">
+                            <span class="amount-label" id="result-status">환급받을 세액</span>
+                            <div class="amount-val-wrapper">
+                                <span class="amount-value" id="final-result-val">0</span>
+                                <span class="amount-unit">원</span>
+                            </div>
+                            <span class="amount-sub" id="final-result-korean">영 원</span>
+                        </div>
+
+                        <!-- Progress visual representation -->
+                        <div class="tax-gauge-container">
+                            <div class="gauge-labels">
+                                <span>최대 납부</span>
+                                <span class="middle-marker">균형</span>
+                                <span>최대 환급</span>
+                            </div>
+                            <div class="gauge-track">
+                                <div class="gauge-fill" id="gauge-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="result-summary-grid">
+                            <div class="summary-item">
+                                <span class="summary-label">결정세액 (내야 할 세금)</span>
+                                <span class="summary-val" id="decided-tax-val">0 원</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">기납부세액 (이미 낸 세금)</span>
+                                <span class="summary-val text-muted" id="prepaid-tax-val">0 원</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Tax Flow Breakdown -->
+                    <div class="card mt-4">
+                        <h3 class="card-title card-title-sm"><i class="fa-solid fa-chart-pie"></i> 연말정산 흐름 분석</h3>
+                        
+                        <!-- Mini SVG chart for visual breakdown -->
+                        <div class="chart-container">
+                            <svg id="tax-flow-svg" viewBox="0 0 320 180" width="100%" height="100%">
+                                <!-- Default graphic when no values -->
+                                <text x="160" y="90" text-anchor="middle" fill="var(--text-muted)" font-size="12">총급여액을 입력하면 차트가 표시됩니다.</text>
+                            </svg>
+                        </div>
+
+                        <div class="flow-breakdown-details">
+                            <div class="flow-step">
+                                <div class="step-dot color-income"></div>
+                                <span class="step-name">총급여액</span>
+                                <span class="step-value" id="lbl-gross">0원</span>
+                            </div>
+                            <div class="flow-step">
+                                <div class="step-dot color-deduction"></div>
+                                <span class="step-name">소득공제 합계</span>
+                                <span class="step-value text-red" id="lbl-deduction">0원</span>
+                            </div>
+                            <div class="flow-step">
+                                <div class="step-dot color-taxable"></div>
+                                <span class="step-name">과세표준</span>
+                                <span class="step-value" id="lbl-taxable">0원</span>
+                            </div>
+                            <div class="flow-step">
+                                <div class="step-dot color-tax-credit"></div>
+                                <span class="step-name">세액공제 합계</span>
+                                <span class="step-value text-red" id="lbl-tax-credit">0원</span>
+                            </div>
+                            <div class="flow-step">
+                                <div class="step-dot color-decided"></div>
+                                <span class="step-name">결정세액</span>
+                                <span class="step-value" id="lbl-decided">0원</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Savings Tips Card -->
+                    <div class="card card-tips mt-4" id="tips-box">
+                        <h3 class="card-title card-title-sm"><i class="fa-solid fa-wand-magic-sparkles"></i> 스마트 절세 솔루션</h3>
+                        <ul class="tips-list" id="tips-list-container">
+                            <li>소득을 먼저 입력하시면 맞춤 절세 팁을 제공합니다.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>© 2026 TaxFlow. 본 계산기의 예측 수치는 실제 연말정산 결과와 일부 차이가 있을 수 있으며, 참고용으로만 사용하시기 바랍니다.</p>
+        </footer>
+    </div>
+
+    <!-- Main Logic Script -->
+    <script src="app.js"></script>
+</body>
+</html>
