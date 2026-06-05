@@ -224,7 +224,28 @@
 
                                 <div class="form-group col-6">
                                     <label for="single-parent-deduction">한부모 공제</label>
-                             <div class="form-row">
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="single-parent-deduction">
+                                        <label for="single-parent-deduction"></label>
+                                        <span class="toggle-text">해당됨 (배우자 없는 자녀 부양)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Deduction -->
+                    <div class="tab-pane" id="tab-deduction" role="tabpanel">
+                        <div class="card">
+                            <h2 class="card-title"><i class="fa-solid fa-credit-card"></i> 신용카드 및 소비 소득공제</h2>
+                            <p class="card-subtitle">총급여의 25% 초과분에 대해 카드 결제수단 및 대상에 따라 공제됩니다.</p>
+                            
+                            <div class="card-info-box">
+                                <i class="fa-solid fa-lightbulb"></i>
+                                <span>2026 개정 세법에 따라 **수영장 및 체력단련장 이용료**도 공제 대상에 새로 추가되었으며, 자녀가 있을 시 한도가 최대 **100만 원** 상향됩니다.</span>
+                            </div>
+
+                            <div class="form-row">
                                 <div class="form-group col-6">
                                     <label for="card-credit">신용카드 사용액</label>
                                     <div class="input-wrapper">
@@ -239,7 +260,6 @@
                                         <input type="text" id="card-debit" placeholder="0" inputmode="numeric">
                                         <span class="unit">원</span>
                                     </div>
-
                                 </div>
                             </div>
 
@@ -276,31 +296,6 @@
                                     <label for="card-transit">대중교통 이용액</label>
                                     <div class="input-wrapper">
                                         <input type="text" id="card-transit" placeholder="0" inputmode="numeric">
-                                        <span class="unit">원</span>
-                                    </div>
-                                </div>
-                            </div>(수영장, 헬스장 등) 이용료 총액입니다. (총급여 7천만 원 이하만 적용)"><i class="fa-regular fa-circle-question"></i></span>
-                                    </label>
-                                    <div class="input-wrapper">
-                                        <input type="number" id="card-culture" placeholder="0" min="0" step="10000">
-                                        <span class="unit">원</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="form-row">
-                                <div class="form-group col-6">
-                                    <label for="card-market">전통시장 사용액</label>
-                                    <div class="input-wrapper">
-                                        <input type="number" id="card-market" placeholder="0" min="0" step="10000">
-                                        <span class="unit">원</span>
-                                    </div>
-                                </div>
-
-                                <div class="form-group col-6">
-                                    <label for="card-transit">대중교통 이용액</label>
-                                    <div class="input-wrapper">
-                                        <input type="number" id="card-transit" placeholder="0" min="0" step="10000">
                                         <span class="unit">원</span>
                                     </div>
                                 </div>
