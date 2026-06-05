@@ -18,8 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 평균 기납부세액 자동 입력 버튼 이벤트
     document.getElementById('auto-prepaid-tax').addEventListener('click', autoFillPrepaidTax);
 
-    // 초기 계산 실행
-    calculateTax();
+    // 다중 사용자 관리 시스템 초기화
+    initUsers();
 });
 
 /* ==========================================
@@ -140,6 +140,9 @@ function initCalcEvents() {
                 document.getElementById('prepaid-tax-korean').innerText = formatKoreanNumber(val);
             }
             
+            // 현재 활성 사용자 데이터 자동 저장
+            saveCurrentUserData();
+            
             // 실시간 세금 계산 실행
             calculateTax();
         });
@@ -168,6 +171,11 @@ function autoFillPrepaidTax() {
         estimate = gross * 0.12; // 12%
     }
     
+    // 원천징수 비율 선택치 반영 (80%, 100%, 120%)
+    const withholdingRateEl = document.querySelector('input[name="withholding-rate"]:checked');
+    const withholdingRate = withholdingRateEl ? parseFloat(withholdingRateEl.value) : 1.0;
+    estimate = estimate * withholdingRate;
+
     // 만원 단위 절사
     estimate = Math.floor(estimate / 10000) * 10000;
     
@@ -797,4 +805,203 @@ function generateSavingsTips(gross, decided) {
     } else {
         tipsContainer.innerHTML = '<li>축하합니다! 완벽한 세무 포트폴리오를 보유하고 있습니다.</li>';
     }
+}
+
+/* ==========================================
+   4. 다중 사용자 프로필 관리 엔진
+   ========================================== */
+
+let users = [];
+let currentUserId = 'default';
+
+// 사용자 데이터 저장용 입력 필드 ID 목록
+const inputIds = [
+    'gross-income', 'prepaid-tax', 'spouse-deduction', 'child-count', 'dependents-count',
+    'elderly-count', 'disabled-count', 'woman-deduction', 'single-parent-deduction',
+    'card-credit', 'card-debit', 'card-cash', 'card-culture', 'card-market', 'card-transit',
+    'housing-saving', 'housing-rent', 'housing-loan', 'national-pension', 'health-insurance',
+    'pension-saving', 'irp-saving', 'insurance-normal', 'insurance-disabled', 'medical-special',
+    'medical-normal', 'education-self', 'education-dependents', 'donation', 'monthly-rent'
+];
+
+function initUsers() {
+    const storedUsers = localStorage.getItem('tax_users');
+    const storedCurrent = localStorage.getItem('tax_current_user');
+
+    if (storedUsers) {
+        users = JSON.parse(storedUsers);
+    } else {
+        // 초기 기본 사용자 생성
+        users = [{
+            id: 'default',
+            name: '기본 사용자',
+            data: {}
+        }];
+        localStorage.setItem('tax_users', JSON.stringify(users));
+    }
+
+    if (storedCurrent && users.some(u => u.id === storedCurrent)) {
+        currentUserId = storedCurrent;
+    } else {
+        currentUserId = users[0].id;
+        localStorage.setItem('tax_current_user', currentUserId);
+    }
+
+    // 새 사용자 추가 이벤트 연결
+    document.getElementById('add-user-btn').addEventListener('click', addUser);
+    document.getElementById('new-user-name').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addUser();
+    });
+
+    // 원천징수 비율 라디오 변경 감지
+    document.querySelectorAll('input[name="withholding-rate"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const gross = parseFloat(document.getElementById('gross-income').value) || 0;
+            if (gross > 0) {
+                autoFillPrepaidTax();
+            }
+            saveCurrentUserData();
+        });
+    });
+
+    renderUserList();
+    loadUserData(currentUserId);
+}
+
+function renderUserList() {
+    const listContainer = document.getElementById('user-list');
+    listContainer.innerHTML = '';
+
+    users.forEach(user => {
+        const item = document.createElement('div');
+        item.className = `user-profile-item ${user.id === currentUserId ? 'active' : ''}`;
+        
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-delete-profile')) return;
+            selectUser(user.id);
+        });
+
+        const info = document.createElement('div');
+        info.className = 'user-profile-info';
+        info.innerHTML = `<i class="fa-solid fa-user"></i> <span>${user.name}</span>`;
+        item.appendChild(info);
+
+        if (users.length > 1) {
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-delete-profile';
+            delBtn.setAttribute('title', '사용자 삭제');
+            delBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+            delBtn.addEventListener('click', () => {
+                deleteUser(user.id);
+            });
+            item.appendChild(delBtn);
+        }
+
+        listContainer.appendChild(item);
+    });
+}
+
+function selectUser(id) {
+    saveCurrentUserData();
+    currentUserId = id;
+    localStorage.setItem('tax_current_user', id);
+    loadUserData(id);
+    renderUserList();
+}
+
+function addUser() {
+    const nameInput = document.getElementById('new-user-name');
+    const name = nameInput.value.trim();
+    if (!name) {
+        alert('이름을 입력해주세요.');
+        return;
+    }
+
+    const newId = 'user_' + Date.now();
+    const newUser = {
+        id: newId,
+        name: name,
+        data: {}
+    };
+
+    users.push(newUser);
+    localStorage.setItem('tax_users', JSON.stringify(users));
+
+    nameInput.value = '';
+    selectUser(newId);
+}
+
+function deleteUser(id) {
+    if (users.length <= 1) {
+        alert('최소 한 명의 사용자는 존재해야 합니다.');
+        return;
+    }
+
+    if (!confirm('해당 사용자의 모든 연말정산 데이터가 영구 삭제됩니다. 계속하시겠습니까?')) {
+        return;
+    }
+
+    users = users.filter(u => u.id !== id);
+    localStorage.setItem('tax_users', JSON.stringify(users));
+
+    if (currentUserId === id) {
+        currentUserId = users[0].id;
+        localStorage.setItem('tax_current_user', currentUserId);
+        loadUserData(currentUserId);
+    } else {
+        renderUserList();
+    }
+}
+
+function saveCurrentUserData() {
+    const userIndex = users.findIndex(u => u.id === currentUserId);
+    if (userIndex === -1) return;
+
+    const data = {};
+    inputIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        if (el.type === 'checkbox') {
+            data[id] = el.checked;
+        } else {
+            data[id] = el.value;
+        }
+    });
+
+    // 원천징수 비율도 데이터에 저장
+    const rateEl = document.querySelector('input[name="withholding-rate"]:checked');
+    data['withholding-rate'] = rateEl ? rateEl.value : '1.0';
+
+    users[userIndex].data = data;
+    localStorage.setItem('tax_users', JSON.stringify(users));
+}
+
+function loadUserData(id) {
+    const user = users.find(u => u.id === id);
+    if (!user) return;
+
+    const data = user.data || {};
+
+    inputIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        const val = data[id];
+        if (el.type === 'checkbox') {
+            el.checked = val === undefined ? false : val;
+        } else {
+            el.value = val === undefined ? '' : val;
+        }
+        triggerInputChange(el);
+    });
+
+    // 원천징수 비율 복원
+    const rate = data['withholding-rate'] || '1.0';
+    const rateEl = document.querySelector(`input[name="withholding-rate"][value="${rate}"]`);
+    if (rateEl) {
+        rateEl.checked = true;
+    }
+
+    calculateTax();
 }
