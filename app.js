@@ -128,7 +128,7 @@ function formatComma(num) {
 
 // 소득 정보 한글 표시 업데이트 & 실시간 계산 바인딩
 function initCalcEvents() {
-    const inputs = document.querySelectorAll('input');
+    const inputs = document.querySelectorAll('input, select');
     inputs.forEach(input => {
         input.addEventListener('input', (e) => {
             // 한글 표시 힌트 처리
@@ -231,6 +231,7 @@ function calculateTax() {
     const educationDependents = Math.max(0, parseFloat(document.getElementById('education-dependents').value) || 0);
     const donation = Math.max(0, parseFloat(document.getElementById('donation').value) || 0);
     const monthlyRent = Math.max(0, parseFloat(document.getElementById('monthly-rent').value) || 0);
+    const smeReduction = document.getElementById('sme-tax-reduction').value || 'none';
 
     // ----------------------------------------
     // [2] 근로소득공제 및 소득금액 산출
@@ -487,12 +488,18 @@ function calculateTax() {
     let educationCredit = (educationSelf + educationDependents) * 0.15;
     taxCredits += educationCredit;
 
-    // 7. 기부금 세액공제 (간이 계산식 적용: 10만 이하는 100/110 전액, 초과는 15% 세액공제)
+    // 7. 기부금 세액공제 (10만 원 이하 90.9% 적용, 1천만 원 이하 15%, 1천만 원 초과 30% 세액공제)
     let donationCredit = 0;
     if (donation <= 100000) {
         donationCredit = donation * 100 / 110;
     } else {
-        donationCredit = (100000 * 100 / 110) + (donation - 100000) * 0.15;
+        let overTen = donation - 100000;
+        let baseDonationCredit = 100000 * 100 / 110;
+        if (overTen <= 10000000) {
+            donationCredit = baseDonationCredit + overTen * 0.15;
+        } else {
+            donationCredit = baseDonationCredit + 10000000 * 0.15 + (overTen - 10000000) * 0.30;
+        }
     }
     taxCredits += donationCredit;
 
@@ -506,9 +513,68 @@ function calculateTax() {
     taxCredits += rentCredit;
 
     // ----------------------------------------
+    // [8.5] 표준세액공제(13만 원) 비교 및 적용 결정
+    // ----------------------------------------
+    // 특별소득공제(주택자금) 및 특별세액공제(보장성보험, 의료비, 교육비, 기부금 10만 초과분, 월세) 금액 합산
+    let specialDeduction = housingDeduction;
+    let specialTaxCredits = insNormalCredit + insDisabledCredit + medicalCredit + educationCredit + (donation > 100000 ? (donation - 100000) * 0.15 : 0) + rentCredit;
+
+    // 해당 과세표준 구간의 한계세율 판정
+    let marginalRate = 0.06;
+    if (taxableIncome > 1000000000) marginalRate = 0.45;
+    else if (taxableIncome > 500000000) marginalRate = 0.42;
+    else if (taxableIncome > 300000000) marginalRate = 0.40;
+    else if (taxableIncome > 150000000) marginalRate = 0.38;
+    else if (taxableIncome > 88000000) marginalRate = 0.35;
+    else if (taxableIncome > 50000000) marginalRate = 0.24;
+    else if (taxableIncome > 14000000) marginalRate = 0.15;
+
+    // 특별공제에 의한 절세 효과 금액 산출
+    let specialBenefit = (specialDeduction * marginalRate) + specialTaxCredits;
+    let useStandardCredit = false;
+
+    if (specialBenefit < 130000) {
+        // 특별공제 포기하고 표준세액공제 13만 원을 선택하는 것이 이득인 경우
+        useStandardCredit = true;
+        
+        // 특별소득공제 배제하고 과세표준 재계산
+        let correctedDeductions = humanDeduction + publicInsuranceDeduction + cardDeduction; // 주택자금 제외
+        let correctedTaxable = Math.max(0, earnedIncomeAmount - correctedDeductions);
+        
+        // 산출세액 재계산
+        if (correctedTaxable <= 14000000) {
+            calculatedTax = correctedTaxable * 0.06;
+        } else if (correctedTaxable <= 50000000) {
+            calculatedTax = 14000000 * 0.06 + (correctedTaxable - 14000000) * 0.15;
+        } else if (correctedTaxable <= 88000000) {
+            calculatedTax = 14000000 * 0.06 + 36000000 * 0.15 + (correctedTaxable - 50000000) * 0.24;
+        } else if (correctedTaxable <= 150000000) {
+            calculatedTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + (correctedTaxable - 88000000) * 0.35;
+        } else {
+            calculatedTax = 14000000 * 0.06 + 36000000 * 0.15 + 38000000 * 0.24 + 62000000 * 0.35 + (correctedTaxable - 150000000) * 0.38;
+        }
+
+        // 특별세액공제 모두 배제하고, 대신 근로소득세액공제 + 자녀세액공제 + 정치기부금(10만 이하) + 표준세액공제(13만) 적용
+        let limitDonationCredit = donation <= 100000 ? donation * 100 / 110 : 100000 * 100 / 110;
+        taxCredits = laborTaxCredit + childTaxCredit + limitDonationCredit + 130000;
+    }
+
+    // ----------------------------------------
+    // [8.7] 중소기업 취업자 소득세 감면 적용
+    // ----------------------------------------
+    let smeReductionAmount = 0;
+    if (smeReduction === 'youth') {
+        // 청년 감면: 90% 감면, 연 200만 원 한도
+        smeReductionAmount = Math.min(calculatedTax * 0.9, 2000000);
+    } else if (smeReduction === 'other') {
+        // 일반 감면: 70% 감면, 연 150만 원 한도
+        smeReductionAmount = Math.min(calculatedTax * 0.7, 1500000);
+    }
+
+    // ----------------------------------------
     // [9] 결정세액 및 최종 환급/납부액 확정
     // ----------------------------------------
-    let decidedTax = Math.max(0, calculatedTax - taxCredits);
+    let decidedTax = Math.max(0, calculatedTax - taxCredits - smeReductionAmount);
     
     // 기납부세액과 비교하여 최종 환급/납부세액 계산
     let finalDiff = prepaidTax - decidedTax; // 양수면 환급, 음수면 추가 납부
@@ -816,7 +882,7 @@ let currentUserId = 'default';
 
 // 사용자 데이터 저장용 입력 필드 ID 목록
 const inputIds = [
-    'gross-income', 'prepaid-tax', 'spouse-deduction', 'child-count', 'dependents-count',
+    'gross-income', 'prepaid-tax', 'sme-tax-reduction', 'spouse-deduction', 'child-count', 'dependents-count',
     'elderly-count', 'disabled-count', 'woman-deduction', 'single-parent-deduction',
     'card-credit', 'card-debit', 'card-cash', 'card-culture', 'card-market', 'card-transit',
     'housing-saving', 'housing-rent', 'housing-loan', 'national-pension', 'health-insurance',
