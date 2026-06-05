@@ -123,35 +123,64 @@ function formatKoreanNumber(num) {
 
 // 콤마 포맷팅 헬퍼 (예: 1500000 -> 1,500,000)
 function formatComma(num) {
-    return num.toLocaleString('ko-KR');
+    if (isNaN(num) || num === null) return '0';
+    return Number(num).toLocaleString('ko-KR');
+}
+
+// 콤마 제거 후 숫자 파싱 헬퍼
+function getNumericValue(id) {
+    const el = document.getElementById(id);
+    if (!el) return 0;
+    const val = el.value.replace(/,/g, '');
+    return parseFloat(val) || 0;
+}
+
+// 실시간 천 단위 콤마 포맷터
+function formatInputWithComma(inputElement) {
+    let value = inputElement.value.replace(/[^0-9]/g, ''); // 숫자 이외 제거
+    if (value === '') {
+        inputElement.value = '';
+        return;
+    }
+    inputElement.value = formatComma(value);
 }
 
 // 소득 정보 한글 표시 업데이트 & 실시간 계산 바인딩
 function initCalcEvents() {
     const inputs = document.querySelectorAll('input, select');
     inputs.forEach(input => {
-        input.addEventListener('input', (e) => {
-            // 한글 표시 힌트 처리
-            if (e.target.id === 'gross-income') {
-                const val = parseFloat(e.target.value) || 0;
-                document.getElementById('gross-income-korean').innerText = formatKoreanNumber(val);
-            } else if (e.target.id === 'prepaid-tax') {
-                const val = parseFloat(e.target.value) || 0;
-                document.getElementById('prepaid-tax-korean').innerText = formatKoreanNumber(val);
-            }
-            
-            // 현재 활성 사용자 데이터 자동 저장
-            saveCurrentUserData();
-            
-            // 실시간 세금 계산 실행
-            calculateTax();
-        });
+        // 천 단위 콤마 대상 금액 인풋 필드인 경우 (inputmode="numeric" 텍스트 필드)
+        if (input.tagName === 'INPUT' && input.getAttribute('inputmode') === 'numeric') {
+            input.addEventListener('input', (e) => {
+                formatInputWithComma(e.target);
+                
+                // 한글 표시 힌트 실시간 갱신
+                if (e.target.id === 'gross-income') {
+                    const val = getNumericValue('gross-income');
+                    document.getElementById('gross-income-korean').innerText = formatKoreanNumber(val);
+                } else if (e.target.id === 'prepaid-tax') {
+                    const val = getNumericValue('prepaid-tax');
+                    document.getElementById('prepaid-tax-korean').innerText = formatKoreanNumber(val);
+                }
+                
+                // 데이터 실시간 자동저장 및 세금 재계산
+                saveCurrentUserData();
+                calculateTax();
+            });
+        } else {
+            // 그 외 일반 필드들 (라디오, 체크박스, 셀렉트, 일반 텍스트 등)
+            const eventType = (input.type === 'checkbox' || input.tagName === 'SELECT' || input.type === 'radio') ? 'change' : 'input';
+            input.addEventListener(eventType, () => {
+                saveCurrentUserData();
+                calculateTax();
+            });
+        }
     });
 }
 
 // 기납부세액 자동 채우기
 function autoFillPrepaidTax() {
-    const gross = parseFloat(document.getElementById('gross-income').value) || 0;
+    const gross = getNumericValue('gross-income');
     if (gross <= 0) {
         alert('먼저 총급여액을 입력해주세요.');
         return;
@@ -193,8 +222,8 @@ function calculateTax() {
     // ----------------------------------------
     // [1] 기본 입력 데이터 로드
     // ----------------------------------------
-    const grossIncome = Math.max(0, parseFloat(document.getElementById('gross-income').value) || 0);
-    const prepaidTax = Math.max(0, parseFloat(document.getElementById('prepaid-tax').value) || 0);
+    const grossIncome = Math.max(0, getNumericValue('gross-income'));
+    const prepaidTax = Math.max(0, getNumericValue('prepaid-tax'));
     
     // 인적공제 항목
     const hasSpouse = document.getElementById('spouse-deduction').checked;
@@ -206,31 +235,31 @@ function calculateTax() {
     const isSingleParent = document.getElementById('single-parent-deduction').checked;
 
     // 소득공제 지출 항목
-    const cardCredit = Math.max(0, parseFloat(document.getElementById('card-credit').value) || 0);
-    const cardDebit = Math.max(0, parseFloat(document.getElementById('card-debit').value) || 0);
-    const cardCash = Math.max(0, parseFloat(document.getElementById('card-cash').value) || 0);
-    const cardCulture = Math.max(0, parseFloat(document.getElementById('card-culture').value) || 0);
-    const cardMarket = Math.max(0, parseFloat(document.getElementById('card-market').value) || 0);
-    const cardTransit = Math.max(0, parseFloat(document.getElementById('card-transit').value) || 0);
+    const cardCredit = Math.max(0, getNumericValue('card-credit'));
+    const cardDebit = Math.max(0, getNumericValue('card-debit'));
+    const cardCash = Math.max(0, getNumericValue('card-cash'));
+    const cardCulture = Math.max(0, getNumericValue('card-culture'));
+    const cardMarket = Math.max(0, getNumericValue('card-market'));
+    const cardTransit = Math.max(0, getNumericValue('card-transit'));
 
-    const housingSaving = Math.max(0, parseFloat(document.getElementById('housing-saving').value) || 0);
-    const housingRent = Math.max(0, parseFloat(document.getElementById('housing-rent').value) || 0);
-    const housingLoan = Math.max(0, parseFloat(document.getElementById('housing-loan').value) || 0);
+    const housingSaving = Math.max(0, getNumericValue('housing-saving'));
+    const housingRent = Math.max(0, getNumericValue('housing-rent'));
+    const housingLoan = Math.max(0, getNumericValue('housing-loan'));
 
-    let nationalPension = parseFloat(document.getElementById('national-pension').value);
-    let healthInsurance = parseFloat(document.getElementById('health-insurance').value);
+    let nationalPension = getNumericValue('national-pension');
+    let healthInsurance = getNumericValue('health-insurance');
 
     // 세액공제 지출 항목
-    const pensionSaving = Math.max(0, parseFloat(document.getElementById('pension-saving').value) || 0);
-    const irpSaving = Math.max(0, parseFloat(document.getElementById('irp-saving').value) || 0);
-    const insuranceNormal = Math.max(0, parseFloat(document.getElementById('insurance-normal').value) || 0);
-    const insuranceDisabled = Math.max(0, parseFloat(document.getElementById('insurance-disabled').value) || 0);
-    const medicalSpecial = Math.max(0, parseFloat(document.getElementById('medical-special').value) || 0);
-    const medicalNormal = Math.max(0, parseFloat(document.getElementById('medical-normal').value) || 0);
-    const educationSelf = Math.max(0, parseFloat(document.getElementById('education-self').value) || 0);
-    const educationDependents = Math.max(0, parseFloat(document.getElementById('education-dependents').value) || 0);
-    const donation = Math.max(0, parseFloat(document.getElementById('donation').value) || 0);
-    const monthlyRent = Math.max(0, parseFloat(document.getElementById('monthly-rent').value) || 0);
+    const pensionSaving = Math.max(0, getNumericValue('pension-saving'));
+    const irpSaving = Math.max(0, getNumericValue('irp-saving'));
+    const insuranceNormal = Math.max(0, getNumericValue('insurance-normal'));
+    const insuranceDisabled = Math.max(0, getNumericValue('insurance-disabled'));
+    const medicalSpecial = Math.max(0, getNumericValue('medical-special'));
+    const medicalNormal = Math.max(0, getNumericValue('medical-normal'));
+    const educationSelf = Math.max(0, getNumericValue('education-self'));
+    const educationDependents = Math.max(0, getNumericValue('education-dependents'));
+    const donation = Math.max(0, getNumericValue('donation'));
+    const monthlyRent = Math.max(0, getNumericValue('monthly-rent'));
     const smeReduction = document.getElementById('sme-tax-reduction').value || 'none';
 
     // ----------------------------------------
@@ -807,12 +836,12 @@ function generateSavingsTips(gross, decided) {
     const tips = [];
 
     // 1. 신용카드 최저 사용량 도달 점검
-    const cardCredit = Math.max(0, parseFloat(document.getElementById('card-credit').value) || 0);
-    const cardDebit = Math.max(0, parseFloat(document.getElementById('card-debit').value) || 0);
-    const cardCash = Math.max(0, parseFloat(document.getElementById('card-cash').value) || 0);
-    const cardCulture = Math.max(0, parseFloat(document.getElementById('card-culture').value) || 0);
-    const cardMarket = Math.max(0, parseFloat(document.getElementById('card-market').value) || 0);
-    const cardTransit = Math.max(0, parseFloat(document.getElementById('card-transit').value) || 0);
+    const cardCredit = Math.max(0, getNumericValue('card-credit'));
+    const cardDebit = Math.max(0, getNumericValue('card-debit'));
+    const cardCash = Math.max(0, getNumericValue('card-cash'));
+    const cardCulture = Math.max(0, getNumericValue('card-culture'));
+    const cardMarket = Math.max(0, getNumericValue('card-market'));
+    const cardTransit = Math.max(0, getNumericValue('card-transit'));
     
     const totalCardSpent = cardCredit + cardDebit + cardCash + cardCulture + cardMarket + cardTransit;
     const threshold = gross * 0.25;
@@ -825,8 +854,8 @@ function generateSavingsTips(gross, decided) {
     }
 
     // 2. 연금저축 및 IRP 세액공제 유도
-    const pensionSaving = Math.max(0, parseFloat(document.getElementById('pension-saving').value) || 0);
-    const irpSaving = Math.max(0, parseFloat(document.getElementById('irp-saving').value) || 0);
+    const pensionSaving = Math.max(0, getNumericValue('pension-saving'));
+    const irpSaving = Math.max(0, getNumericValue('irp-saving'));
     const pensionLimit = 6000000;
     const totalLimit = 9000000;
     
@@ -850,7 +879,7 @@ function generateSavingsTips(gross, decided) {
     }
 
     // 3. 주택청약종합저축 (7천만원 이하 무주택자)
-    const housingSaving = Math.max(0, parseFloat(document.getElementById('housing-saving').value) || 0);
+    const housingSaving = Math.max(0, getNumericValue('housing-saving'));
     if (gross <= 70000000 && housingSaving === 0) {
         tips.push(`총급여 7천만 원 이하 무주택 세대주/배우자이시라면 **주택청약저축** 납입액의 40%(연 300만 원 납입 한도 시 최대 120만 원)를 소득공제 받을 수 있습니다.`);
     }
@@ -922,7 +951,7 @@ function initUsers() {
     // 원천징수 비율 라디오 변경 감지
     document.querySelectorAll('input[name="withholding-rate"]').forEach(radio => {
         radio.addEventListener('change', () => {
-            const gross = parseFloat(document.getElementById('gross-income').value) || 0;
+            const gross = getNumericValue('gross-income');
             if (gross > 0) {
                 autoFillPrepaidTax();
             }
