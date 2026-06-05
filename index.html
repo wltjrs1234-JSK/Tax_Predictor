@@ -185,19 +185,29 @@
                                 <span>2026 개정 세법에 따라 **수영장 및 체력단련장 이용료**도 공제 대상에 새로 추가되었으며, 자녀가 있을 시 한도가 최대 **100만 원** 상향됩니다.</span>
                             </div>
 
-                            <div class="form-group">
-                                <label for="card-credit">신용카드 사용액</label>
-                                <div class="input-wrapper">
-                                    <input type="number" id="card-credit" placeholder="0" min="0" step="10000">
-                                    <span class="unit">원</span>
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="card-credit">신용카드 사용액</label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="card-credit" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-6">
+                                    <label for="card-debit">체크카드 사용액</label>
+                                    <div class="input-wrapper">
+                                        <input type="number" id="card-debit" placeholder="0" min="0" step="10000">
+                                        <span class="unit">원</span>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="form-row">
                                 <div class="form-group col-6">
-                                    <label for="card-debit">체크카드 · 현금영수증</label>
+                                    <label for="card-cash">현금영수증 사용액</label>
                                     <div class="input-wrapper">
-                                        <input type="number" id="card-debit" placeholder="0" min="0" step="10000">
+                                        <input type="number" id="card-cash" placeholder="0" min="0" step="10000">
                                         <span class="unit">원</span>
                                     </div>
                                 </div>

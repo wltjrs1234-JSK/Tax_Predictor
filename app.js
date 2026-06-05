@@ -200,6 +200,7 @@ function calculateTax() {
     // 소득공제 지출 항목
     const cardCredit = Math.max(0, parseFloat(document.getElementById('card-credit').value) || 0);
     const cardDebit = Math.max(0, parseFloat(document.getElementById('card-debit').value) || 0);
+    const cardCash = Math.max(0, parseFloat(document.getElementById('card-cash').value) || 0);
     const cardCulture = Math.max(0, parseFloat(document.getElementById('card-culture').value) || 0);
     const cardMarket = Math.max(0, parseFloat(document.getElementById('card-market').value) || 0);
     const cardTransit = Math.max(0, parseFloat(document.getElementById('card-transit').value) || 0);
@@ -292,7 +293,7 @@ function calculateTax() {
     // ----------------------------------------
     let cardDeduction = 0;
     const cardThreshold = grossIncome * 0.25;
-    const totalSpent = cardCredit + cardDebit + cardCulture + cardMarket + cardTransit;
+    const totalSpent = cardCredit + cardDebit + cardCash + cardCulture + cardMarket + cardTransit;
 
     if (totalSpent > cardThreshold) {
         // 문턱을 넘었으므로 공제 가능.
@@ -309,7 +310,7 @@ function calculateTax() {
         
         let c_rem = cardCredit;
         let b_rem = cardCulture;
-        let d_rem = cardDebit;
+        let d_rem = cardDebit + cardCash;
         let m_rem = cardMarket;
         let p_rem = cardTransit;
 
@@ -734,11 +735,12 @@ function generateSavingsTips(gross, decided) {
     // 1. 신용카드 최저 사용량 도달 점검
     const cardCredit = Math.max(0, parseFloat(document.getElementById('card-credit').value) || 0);
     const cardDebit = Math.max(0, parseFloat(document.getElementById('card-debit').value) || 0);
+    const cardCash = Math.max(0, parseFloat(document.getElementById('card-cash').value) || 0);
     const cardCulture = Math.max(0, parseFloat(document.getElementById('card-culture').value) || 0);
     const cardMarket = Math.max(0, parseFloat(document.getElementById('card-market').value) || 0);
     const cardTransit = Math.max(0, parseFloat(document.getElementById('card-transit').value) || 0);
     
-    const totalCardSpent = cardCredit + cardDebit + cardCulture + cardMarket + cardTransit;
+    const totalCardSpent = cardCredit + cardDebit + cardCash + cardCulture + cardMarket + cardTransit;
     const threshold = gross * 0.25;
 
     if (totalCardSpent < threshold) {
